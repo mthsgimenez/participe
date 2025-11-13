@@ -8,6 +8,7 @@ import (
 	"github.com/mthsgimenez/participe/internal/company"
 	"github.com/mthsgimenez/participe/internal/db"
 	"github.com/mthsgimenez/participe/internal/env"
+	"github.com/mthsgimenez/participe/internal/event"
 	"github.com/mthsgimenez/participe/internal/user"
 )
 
@@ -18,6 +19,9 @@ var (
 	userRepository    user.Repository
 	userService       *user.Service
 	authH             *authHandler
+	eventRepository   event.Repository
+	eventService      *event.Service
+	eventH            *eventHandler
 )
 
 func main() {
@@ -49,11 +53,16 @@ func main() {
 
 	authH = NewAuthHandler(userService, companyService)
 
-	mux := createRoutes(companyH, authH)
+	eventRepository = event.NewRepositoryPostgres(conn)
+	eventService = event.NewService(eventRepository)
+	eventH = NewEventHandler(eventService, userService)
+
+	mux := createRoutes(companyH, authH, eventH)
+	muxWithCors := CorsMiddleware(mux)
 
 	// -------------
 
 	port := env.GetStringFallback("PORT", "8000")
 	fmt.Printf("Server started at localhost:%s", port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), muxWithCors))
 }
