@@ -24,27 +24,29 @@ func NewRepositoryPostgres(db *sql.DB) *RepositoryPostgres {
 
 func (r *RepositoryPostgres) FindById(id int) (*User, error) {
 	user := &User{}
+	var role string
 	row := r.db.QueryRow(`SELECT id, email, company_id, "name", "role", "password" FROM users WHERE id = $1`, id)
-	if err := row.Scan(&user.Id, &user.Email, &user.Company.Id, &user.Name, &user.Role, &user.hash); err != nil {
+	if err := row.Scan(&user.Id, &user.Email, &user.Company.Id, &user.Name, &role, &user.hash); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("user_repository: find by id: %w", ErrUserNotFound)
 		}
 		return nil, fmt.Errorf("user_repository: find by id: %w", err)
 	}
-
+	user.Role = StringToUserRole(role)
 	return user, nil
 }
 
 func (r *RepositoryPostgres) FindByEmail(email string) (*User, error) {
 	user := &User{}
+	var role string
 	row := r.db.QueryRow(`SELECT id, email, company_id, "name", "role", "password" FROM users WHERE email = $1`, email)
-	if err := row.Scan(&user.Id, &user.Email, &user.Company.Id, &user.Name, &user.Role, &user.hash); err != nil {
+	if err := row.Scan(&user.Id, &user.Email, &user.Company.Id, &user.Name, &role, &user.hash); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("user_repository: find by email: %w", ErrUserNotFound)
 		}
 		return nil, fmt.Errorf("user_repository: find by email: %w", err)
 	}
-
+	user.Role = StringToUserRole(role)
 	return user, nil
 }
 
@@ -58,10 +60,11 @@ func (r *RepositoryPostgres) FindAll() (*[]User, error) {
 	var users []User
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.Id, &u.Email, &u.Company.Id, &u.Name, &u.Role, &u.hash); err != nil {
+		var role string
+		if err := rows.Scan(&u.Id, &u.Email, &u.Company.Id, &u.Name, &role, &u.hash); err != nil {
 			return nil, fmt.Errorf("user_repository: scan user in find all: %w", err)
 		}
-
+		u.Role = StringToUserRole(role)
 		users = append(users, u)
 	}
 
@@ -89,7 +92,6 @@ func (r *RepositoryPostgres) Insert(u *User) (*User, error) {
 		}
 		return nil, fmt.Errorf("user_repository: insert user: %w", err)
 	}
-
 	newUser.Role = StringToUserRole(role)
 
 	return &newUser, nil
@@ -99,11 +101,12 @@ func (r *RepositoryPostgres) Update(u *User) (*User, error) {
 	row := r.db.QueryRow(`UPDATE users 
 		SET email = $1, company_id = $2, "name" = $3, "role" = $4, "password" = $5 
 		WHERE id = $6 
-		RETURNING id, email, company_id, "name", "role", "password"`,
+		RETURNING id, email, company_id, "name", "role", "password`,
 		u.Email, u.Company.Id, u.Name, u.Role.String(), u.hash, u.Id)
 
 	var updatedUser User
-	if err := row.Scan(&updatedUser.Id, &updatedUser.Email, &updatedUser.Company.Id, &updatedUser.Name, &updatedUser.Role, &updatedUser.hash); err != nil {
+	var role string
+	if err := row.Scan(&updatedUser.Id, &updatedUser.Email, &updatedUser.Company.Id, &updatedUser.Name, &role, &updatedUser.hash); err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "23505" { // Unique violation
@@ -112,6 +115,7 @@ func (r *RepositoryPostgres) Update(u *User) (*User, error) {
 		}
 		return nil, fmt.Errorf("user_repository: update user: %w", err)
 	}
+	updatedUser.Role = StringToUserRole(role)
 
 	return &updatedUser, nil
 }
