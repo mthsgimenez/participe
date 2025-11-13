@@ -8,12 +8,16 @@ import (
 	"github.com/mthsgimenez/participe/internal/company"
 	"github.com/mthsgimenez/participe/internal/db"
 	"github.com/mthsgimenez/participe/internal/env"
+	"github.com/mthsgimenez/participe/internal/user"
 )
 
 var (
 	companyRepository company.Repository
 	companyService    *company.Service
-	cmpnyHandler      *companyHandler
+	companyH          *companyHandler
+	userRepository    user.Repository
+	userService       *user.Service
+	authH             *authHandler
 )
 
 func main() {
@@ -34,11 +38,20 @@ func main() {
 	}
 	defer conn.Close()
 
+	// Dependencies
+
 	companyRepository = company.NewRepositoryPostgres(conn)
 	companyService = company.NewService(companyRepository)
-	cmpnyHandler = newCompanyHandler(companyService)
+	companyH = newCompanyHandler(companyService)
 
-	mux := createRoutes(cmpnyHandler)
+	userRepository = user.NewRepositoryPostgres(conn)
+	userService = user.NewService(userRepository, companyRepository)
+
+	authH = NewAuthHandler(userService, companyService)
+
+	mux := createRoutes(companyH, authH)
+
+	// -------------
 
 	port := env.GetStringFallback("PORT", "8000")
 	fmt.Printf("Server started at localhost:%s", port)

@@ -8,7 +8,7 @@ import (
 	"github.com/mthsgimenez/participe/internal/env"
 )
 
-var key = env.GetStringFallback("SECRET_KEY", "secret")
+var key = []byte(env.GetStringFallback("SECRET_KEY", "secret"))
 
 type Claims struct {
 	Email string `json:"email"`
