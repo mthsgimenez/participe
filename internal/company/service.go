@@ -1,5 +1,7 @@
 package company
 
+import "fmt"
+
 type Repository interface {
 	FindById(id int) (*Company, error)
 	FindAll() (*[]Company, error)
@@ -20,7 +22,7 @@ func NewService(r Repository) *Service {
 func (s *Service) GetCompany(id int) (*Company, error) {
 	c, err := s.repo.FindById(id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("company_service: get company: %w", err)
 	}
 
 	return c, nil
@@ -29,7 +31,7 @@ func (s *Service) GetCompany(id int) (*Company, error) {
 func (s *Service) GetCompanies() (*[]Company, error) {
 	cList, err := s.repo.FindAll()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("company_service: get companies: %w", err)
 	}
 
 	return cList, nil
@@ -38,7 +40,7 @@ func (s *Service) GetCompanies() (*[]Company, error) {
 func (s *Service) CreateCompany(c *Company) (*Company, error) {
 	newComp, err := s.repo.Insert(c)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("company_service: create company: %w", err)
 	}
 
 	return newComp, nil
@@ -47,14 +49,14 @@ func (s *Service) CreateCompany(c *Company) (*Company, error) {
 func (s *Service) UpdateCompany(id int, newData *Company) (*Company, error) {
 	cmp, err := s.repo.FindById(id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("company_service: update company: find by id: %w", err)
 	}
 
 	cmp.Name = newData.Name
 
 	updatedCmp, err := s.repo.Update(cmp)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("company_service: update company: %w", err)
 	}
 
 	return updatedCmp, nil
@@ -63,12 +65,16 @@ func (s *Service) UpdateCompany(id int, newData *Company) (*Company, error) {
 func (s *Service) DeleteCompany(id int) error {
 	exists, err := s.repo.Exists(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("company_service: delete company: exists check: %w", err)
 	}
 
 	if !exists {
-		return ErrCompanyNotFound
+		return fmt.Errorf("company_service: delete company: %w", ErrCompanyNotFound)
 	}
 
-	return s.repo.DeleteById(id)
+	if err := s.repo.DeleteById(id); err != nil {
+		return fmt.Errorf("company_service: delete company: %w", err)
+	}
+
+	return nil
 }
