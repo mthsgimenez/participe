@@ -18,6 +18,7 @@ var (
 	companyH          *companyHandler
 	userRepository    user.Repository
 	userService       *user.Service
+	userH             *userHandler
 	authH             *authHandler
 	eventRepository   event.Repository
 	eventService      *event.Service
@@ -50,6 +51,7 @@ func main() {
 
 	userRepository = user.NewRepositoryPostgres(conn)
 	userService = user.NewService(userRepository, companyRepository)
+	userH = NewUserHandler(userService)
 
 	authH = NewAuthHandler(userService, companyService)
 
@@ -57,7 +59,7 @@ func main() {
 	eventService = event.NewService(eventRepository)
 	eventH = NewEventHandler(eventService, userService)
 
-	mux := createRoutes(companyH, authH, eventH)
+	mux := createRoutes(companyH, authH, eventH, userH)
 	muxWithCors := CorsMiddleware(mux)
 
 	// -------------

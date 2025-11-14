@@ -6,20 +6,34 @@ func createRoutes(
 	companyH *companyHandler,
 	authH *authHandler,
 	eventH *eventHandler,
+	userH *userHandler,
 ) *http.ServeMux {
-	mux := http.NewServeMux()
+	root := http.NewServeMux()
 
-	mux.HandleFunc("GET /company/{id}", companyH.handleGetCompany)
-	mux.HandleFunc("GET /company", companyH.handleGetCompanies)
-	mux.HandleFunc("POST /company", companyH.handlePostCompany)
-	mux.HandleFunc("PUT /company/{id}", companyH.handlePutCompany)
-	mux.HandleFunc("DELETE /company/{id}", companyH.handleDeleteCompany)
+	// Public routes
+	root.HandleFunc("POST /auth/register", authH.handleRegister)
+	root.HandleFunc("POST /auth/login", authH.handleLogin)
 
-	mux.HandleFunc("POST /auth/register", authH.handleRegister)
-	mux.HandleFunc("POST /auth/login", authH.handleLogin)
+	// Private routes
+	protectedMux := http.NewServeMux()
+	protectedMux.HandleFunc("GET /company/{id}", companyH.handleGetCompany)
+	protectedMux.HandleFunc("GET /company", companyH.handleGetCompanies)
+	protectedMux.HandleFunc("POST /company", companyH.handlePostCompany)
+	protectedMux.HandleFunc("PUT /company/{id}", companyH.handlePutCompany)
+	protectedMux.HandleFunc("DELETE /company/{id}", companyH.handleDeleteCompany)
 
-	mux.HandleFunc("GET /event", eventH.handleGetUpcomingEvents)
-	mux.Handle("GET /event/all", AuthMiddleware(http.HandlerFunc(eventH.handleGetAllEvents)))
+	protectedMux.HandleFunc("GET /event", eventH.handleGetUpcomingEvents)
+	protectedMux.HandleFunc("GET /event/all", eventH.handleGetAllEvents)
+	protectedMux.HandleFunc("GET /event/{id}", eventH.handleGetEvent)
+	protectedMux.HandleFunc("GET /event/{id}/checkin", eventH.handleGetCheckins)
+	protectedMux.HandleFunc("POST /event/{id}/checkin", eventH.handlePostCheckin)
+	protectedMux.HandleFunc("POST /event", eventH.handlePostEvent)
 
-	return mux
+	protectedMux.HandleFunc("GET /user/{id}", userH.handleGetUser)
+
+	protected := AuthMiddleware(protectedMux)
+
+	root.Handle("/", protected)
+
+	return root
 }

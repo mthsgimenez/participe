@@ -148,7 +148,7 @@ func (r *RepositoryPostgres) FindUpcoming() (*[]Event, error) {
 }
 
 func (r *RepositoryPostgres) FindCheckedUsers(e *Event) (*[]user.User, error) {
-	rows, err := r.db.Query(`SELECT u.id, u.email, u.company_id, u.name FROM events_users eu JOIN users u ON eu.user_id = u.id WHERE eu.event_id = $1`)
+	rows, err := r.db.Query(`SELECT u.id, u.email, u.company_id, u.name FROM events_users eu JOIN users u ON eu.user_id = u.id WHERE eu.event_id = $1`, e.Id)
 	if err != nil {
 		return nil, fmt.Errorf("event_repository: find checked users: %w", err)
 	}
