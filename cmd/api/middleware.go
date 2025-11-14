@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/mthsgimenez/participe/internal/auth"
 )
@@ -21,19 +20,13 @@ func GetUserClaims(r *http.Request) *auth.Claims {
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			RespondJSONError(w, "missing Authorization header", http.StatusUnauthorized)
+		cookie, err := r.Cookie("jwt")
+		if err != nil {
+			RespondJSONError(w, "missing or invalid JWT cookie", http.StatusUnauthorized)
 			return
 		}
 
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			RespondJSONError(w, "invalid Authorization header", http.StatusUnauthorized)
-			return
-		}
-
-		tokenString := parts[1]
+		tokenString := cookie.Value
 		claims, err := auth.VerifyJWT(tokenString)
 		if err != nil {
 			RespondJSONError(w, "invalid or expired token", http.StatusUnauthorized)
@@ -47,10 +40,12 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 func CorsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Access-Control-Allow-Origin", "localhost")
-		w.Header().Add("Access-Control-Allow-Credentials", "true")
-		w.Header().Add("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		origin := r.Header.Get("Origin")
+
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)

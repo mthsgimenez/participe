@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -102,7 +101,15 @@ func (h *authHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondJSON(w, fmt.Sprintf("Bearer %s", token), http.StatusOK)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+	})
+	RespondJSON(w, "login successful", http.StatusOK)
 }
 
 func (h *authHandler) handleRegister(w http.ResponseWriter, r *http.Request) {
