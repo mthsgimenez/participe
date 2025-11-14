@@ -29,7 +29,7 @@ func createRoutes(
 	protectedMux.HandleFunc("POST /event/{id}/checkin", eventH.handlePostCheckin)
 	protectedMux.HandleFunc("POST /event", eventH.handlePostEvent)
 
-	protectedMux.HandleFunc("GET /user/{id}", userH.handleGetUser)
+	protectedMux.HandleFunc("GET /me", userH.handleGetMe)
 
 	protected := AuthMiddleware(protectedMux)
 
